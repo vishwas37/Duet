@@ -1,0 +1,6 @@
+{
+  "name": "Duet — Intentionally Childfree Dating",
+  "description": "A feminist, queer-friendly, minimalist editorial dating web app built exclusively for the intentionally childfree community.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

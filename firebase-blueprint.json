@@ -1,0 +1,190 @@
+{
+  "entities": {
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Member-visible Hinge-style childfree editorial dating profile (strictly excludes PII such as email and blockedUids).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "emailVerifiedViaOtp": { "type": "boolean" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "age": { "type": "number" },
+        "city": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "hometown": { "type": "string", "maxLength": 80 },
+        "workOrCraft": { "type": "string", "maxLength": 120 },
+        "genders": { "type": "array" },
+        "showGender": { "type": "boolean" },
+        "pronouns": { "type": "array" },
+        "orientations": { "type": "array" },
+        "showOrientation": { "type": "boolean" },
+        "relationshipStyles": { "type": "array" },
+        "childfreePledgeSigned": { "type": "boolean" },
+        "feministQueerPledgeSigned": { "type": "boolean" },
+        "childfreeStanceBadge": {
+          "type": "string",
+          "enum": [
+            "100% Firmly Childfree",
+            "Childfree & Sterilized / Vasectomy",
+            "DINK Life Enthusiast",
+            "Childfree Pet Parent"
+          ]
+        },
+        "showSterilizedBadge": { "type": "boolean" },
+        "valuesAndLifestyle": { "type": "array" },
+        "photos": { "type": "array" },
+        "prompts": { "type": "array" },
+        "discoveryPreferences": { "type": "object" },
+        "safetySettings": { "type": "object" },
+        "isDiscoverable": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "uid",
+        "emailVerifiedViaOtp",
+        "displayName",
+        "age",
+        "city",
+        "genders",
+        "showGender",
+        "pronouns",
+        "orientations",
+        "showOrientation",
+        "relationshipStyles",
+        "childfreePledgeSigned",
+        "feministQueerPledgeSigned",
+        "childfreeStanceBadge",
+        "showSterilizedBadge",
+        "valuesAndLifestyle",
+        "photos",
+        "prompts",
+        "discoveryPreferences",
+        "safetySettings",
+        "isDiscoverable",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UserPrivate": {
+      "title": "UserPrivate",
+      "description": "Isolated PII and private safety controls strictly readable and writable only by the owner.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": { "type": "string", "format": "email", "maxLength": 180 },
+        "blockedUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "blockedUids", "createdAt", "updatedAt"]
+    },
+    "LikeInteraction": {
+      "title": "LikeInteraction",
+      "description": "Element-level like or pass interaction targeting a specific photo, prompt, or profile.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 260 },
+        "fromUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "toUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "type": { "type": "string", "enum": ["like", "pass"] },
+        "targetElementType": { "type": "string", "enum": ["photo", "prompt", "profile"] },
+        "targetElementId": { "type": "string", "maxLength": 128 },
+        "targetElementPreview": { "type": "string", "maxLength": 500 },
+        "note": { "type": "string", "maxLength": 300 },
+        "status": { "type": "string", "enum": ["pending", "matched", "dismissed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "fromUid", "toUid", "type", "status", "createdAt"]
+    },
+    "MatchThread": {
+      "title": "MatchThread",
+      "description": "Mutual connection thread between two matched members.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 260 },
+        "participants": { "type": "array" },
+        "originContext": { "type": "object" },
+        "lastMessageText": { "type": "string", "maxLength": 1000 },
+        "lastMessageAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "participants", "lastMessageAt", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Real-time message inside a mutual match thread.",
+      "type": "object",
+      "properties": {
+        "matchId": { "type": "string", "maxLength": 260 },
+        "participants": { "type": "array" },
+        "senderUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["matchId", "participants", "senderUid", "text", "createdAt"]
+    },
+    "SafetyReport": {
+      "title": "SafetyReport",
+      "description": "Create-only childfree boundary or feminist safety report.",
+      "type": "object",
+      "properties": {
+        "reporterUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "reportedUid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_\\-]+$" },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "Misrepresented childfree status / secretly wants kids",
+            "Pressuring me to change my mind about children",
+            "Misogyny, sexism, or disrespecting boundaries",
+            "Queerphobia / transphobia",
+            "Harassment or unsolicited explicit content",
+            "Fake profile / spam"
+          ]
+        },
+        "details": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["reporterUid", "reportedUid", "reason", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/profiles/{uid}": {
+      "schema": { "$ref": "#/entities/PublicProfile" },
+      "description": "Member-visible Hinge-style childfree profiles with no email PII."
+    },
+    "/userPrivate/{uid}": {
+      "schema": { "$ref": "#/entities/UserPrivate" },
+      "description": "Owner-only private document storing email and blocked UIDs."
+    },
+    "/likes/{likeId}": {
+      "schema": { "$ref": "#/entities/LikeInteraction" },
+      "description": "Element-level likes and passes between members."
+    },
+    "/matches/{matchId}": {
+      "schema": { "$ref": "#/entities/MatchThread" },
+      "description": "Mutual connections between two members."
+    },
+    "/matches/{matchId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages inside a mutual match thread."
+    },
+    "/reports/{reportId}": {
+      "schema": { "$ref": "#/entities/SafetyReport" },
+      "description": "Create-only safety and childfree boundary violation reports."
+    },
+    "/email_otps/{emailHash}": {
+      "schema": "ServerOnlyEmailOtp",
+      "description": "Server-only hashed 6-digit email OTP records managed strictly by Cloud Functions Admin SDK."
+    }
+  }
+}

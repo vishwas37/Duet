@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Instrument Serif", Georgia, Cambria, "Times New Roman", serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  --color-alabaster: #FAF9F6;
+  --color-hairline: #EAE6DF;
+  --color-ink: #18181B;
+  --color-slate-muted: #71717A;
+  --color-sage: #3F6251;
+  --color-sage-hover: #345143;
+  --color-sage-soft: #EEF3F0;
+  --color-terracotta: #C86D51;
+  --color-terracotta-hover: #B45E43;
+  --color-terracotta-soft: #FBF1EE;
+  --color-plum: #6D4C6E;
+  --color-plum-soft: #F6F1F6;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    background-color: #FAF9F6;
+    color: #18181B;
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, .font-editorial {
+    font-family: var(--font-serif);
+    text-wrap: balance;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,376 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 0: Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable hardened primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 260 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isBoundedStringList(arr, maxLen) {
+      return arr is list && arr.size() <= maxLen && (arr.size() == 0 || arr[0] is string);
+    }
+
+    function isValidPublicProfile(data) {
+      return data.keys().hasAll([
+        'uid',
+        'emailVerifiedViaOtp',
+        'displayName',
+        'age',
+        'city',
+        'genders',
+        'showGender',
+        'pronouns',
+        'orientations',
+        'showOrientation',
+        'relationshipStyles',
+        'childfreePledgeSigned',
+        'feministQueerPledgeSigned',
+        'childfreeStanceBadge',
+        'showSterilizedBadge',
+        'valuesAndLifestyle',
+        'photos',
+        'prompts',
+        'discoveryPreferences',
+        'safetySettings',
+        'isDiscoverable',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.keys().hasOnly([
+        'uid',
+        'emailVerifiedViaOtp',
+        'displayName',
+        'age',
+        'city',
+        'hometown',
+        'workOrCraft',
+        'genders',
+        'showGender',
+        'pronouns',
+        'orientations',
+        'showOrientation',
+        'relationshipStyles',
+        'childfreePledgeSigned',
+        'feministQueerPledgeSigned',
+        'childfreeStanceBadge',
+        'showSterilizedBadge',
+        'valuesAndLifestyle',
+        'photos',
+        'prompts',
+        'discoveryPreferences',
+        'safetySettings',
+        'isDiscoverable',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.uid == request.auth.uid
+      && isValidId(data.uid)
+      && data.emailVerifiedViaOtp is bool
+      && isValidString(data.displayName, 1, 60)
+      && data.age is number && data.age >= 18 && data.age <= 105
+      && isValidString(data.city, 1, 80)
+      && (!('hometown' in data) || isValidString(data.hometown, 0, 80))
+      && (!('workOrCraft' in data) || isValidString(data.workOrCraft, 0, 120))
+      && isBoundedStringList(data.genders, 6)
+      && data.showGender is bool
+      && isBoundedStringList(data.pronouns, 4)
+      && isBoundedStringList(data.orientations, 6)
+      && data.showOrientation is bool
+      && isBoundedStringList(data.relationshipStyles, 5)
+      && data.childfreePledgeSigned == true
+      && data.feministQueerPledgeSigned == true
+      && data.childfreeStanceBadge in [
+        '100% Firmly Childfree',
+        'Childfree & Sterilized / Vasectomy',
+        'DINK Life Enthusiast',
+        'Childfree Pet Parent'
+      ]
+      && data.showSterilizedBadge is bool
+      && isBoundedStringList(data.valuesAndLifestyle, 8)
+      && data.photos is list && data.photos.size() >= 1 && data.photos.size() <= 6
+      && data.prompts is list && data.prompts.size() >= 1 && data.prompts.size() <= 3
+      && data.discoveryPreferences is map
+      && data.safetySettings is map
+      && data.isDiscoverable is bool
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidUserPrivate(data) {
+      return data.keys().hasAll(['uid', 'email', 'blockedUids', 'createdAt', 'updatedAt'])
+      && data.keys().hasOnly(['uid', 'email', 'blockedUids', 'createdAt', 'updatedAt'])
+      && data.uid == request.auth.uid
+      && isValidId(data.uid)
+      && isValidString(data.email, 3, 180)
+      && isBoundedStringList(data.blockedUids, 500)
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidLike(data) {
+      return data.keys().hasAll(['id', 'fromUid', 'toUid', 'type', 'status', 'createdAt'])
+      && data.keys().hasOnly([
+        'id',
+        'fromUid',
+        'toUid',
+        'type',
+        'targetElementType',
+        'targetElementId',
+        'targetElementPreview',
+        'note',
+        'status',
+        'createdAt'
+      ])
+      && isValidId(data.id)
+      && isValidId(data.fromUid)
+      && isValidId(data.toUid)
+      && data.fromUid != data.toUid
+      && data.type in ['like', 'pass']
+      && (!('targetElementType' in data) || data.targetElementType in ['photo', 'prompt', 'profile'])
+      && (!('targetElementId' in data) || isValidString(data.targetElementId, 1, 128))
+      && (!('targetElementPreview' in data) || isValidString(data.targetElementPreview, 0, 500))
+      && (!('note' in data) || isValidString(data.note, 0, 300))
+      && data.status in ['pending', 'matched', 'dismissed']
+      && data.createdAt is timestamp;
+    }
+
+    function isValidMatch(data) {
+      return data.keys().hasAll(['id', 'participants', 'lastMessageAt', 'createdAt'])
+      && data.keys().hasOnly(['id', 'participants', 'originContext', 'lastMessageText', 'lastMessageAt', 'createdAt'])
+      && isValidId(data.id)
+      && data.participants is list
+      && data.participants.size() == 2
+      && data.participants[0] is string
+      && data.participants[1] is string
+      && data.participants[0] != data.participants[1]
+      && (!('originContext' in data) || data.originContext is map)
+      && (!('lastMessageText' in data) || isValidString(data.lastMessageText, 0, 1000))
+      && data.lastMessageAt is timestamp
+      && data.createdAt is timestamp;
+    }
+
+    function isValidMessage(data, matchId) {
+      return data.keys().hasAll(['matchId', 'participants', 'senderUid', 'text', 'createdAt'])
+      && data.keys().hasOnly(['matchId', 'participants', 'senderUid', 'text', 'createdAt'])
+      && data.matchId == matchId
+      && data.participants is list
+      && data.participants.size() == 2
+      && data.participants[0] is string
+      && data.participants[1] is string
+      && data.senderUid == request.auth.uid
+      && request.auth.uid in data.participants
+      && isValidString(data.text, 1, 1000)
+      && data.createdAt is timestamp;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['reporterUid', 'reportedUid', 'reason', 'createdAt'])
+      && data.keys().hasOnly(['reporterUid', 'reportedUid', 'reason', 'details', 'createdAt'])
+      && data.reporterUid == request.auth.uid
+      && isValidId(data.reportedUid)
+      && data.reporterUid != data.reportedUid
+      && data.reason in [
+        'Misrepresented childfree status / secretly wants kids',
+        'Pressuring me to change my mind about children',
+        'Misogyny, sexism, or disrespecting boundaries',
+        'Queerphobia / transphobia',
+        'Harassment or unsolicited explicit content',
+        'Fake profile / spam'
+      ]
+      && (!('details' in data) || isValidString(data.details, 0, 1000))
+      && data.createdAt is timestamp;
+    }
+
+    // 1. Public member profiles (PII-free)
+    match /profiles/{uid} {
+      allow get: if isSignedIn() && isValidId(uid) && (resource.data.isDiscoverable == true || isOwner(uid));
+      allow list: if isSignedIn() && (resource.data.isDiscoverable == true || resource.data.uid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(uid)
+        && isOwner(uid)
+        && isValidPublicProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(uid)
+        && isOwner(uid)
+        && isValidPublicProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName',
+          'age',
+          'city',
+          'hometown',
+          'workOrCraft',
+          'genders',
+          'showGender',
+          'pronouns',
+          'orientations',
+          'showOrientation',
+          'relationshipStyles',
+          'childfreeStanceBadge',
+          'showSterilizedBadge',
+          'valuesAndLifestyle',
+          'photos',
+          'prompts',
+          'discoveryPreferences',
+          'safetySettings',
+          'isDiscoverable',
+          'updatedAt'
+        ]);
+
+      allow delete: if isVerifiedUser() && isValidId(uid) && isOwner(uid);
+    }
+
+    // 2. Private user PII & blocked list (strictly owner-only)
+    match /userPrivate/{uid} {
+      allow get: if isOwner(uid) && isValidId(uid);
+      allow list: if false;
+
+      allow create: if isVerifiedUser()
+        && isValidId(uid)
+        && isOwner(uid)
+        && isValidUserPrivate(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(uid)
+        && isOwner(uid)
+        && isValidUserPrivate(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['email', 'blockedUids', 'updatedAt']);
+
+      allow delete: if isVerifiedUser() && isValidId(uid) && isOwner(uid);
+    }
+
+    // 3. Element-level likes & passes
+    match /likes/{likeId} {
+      allow get: if isSignedIn() && isValidId(likeId)
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow list: if isSignedIn()
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+
+      allow create: if isVerifiedUser()
+        && isValidId(likeId)
+        && isValidLike(incoming())
+        && incoming().fromUid == request.auth.uid
+        && likeId == (request.auth.uid + '__' + incoming().toUid)
+        && incoming().status == 'pending'
+        && incoming().createdAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(likeId)
+        && isValidLike(incoming())
+        && existing().status == 'pending'
+        && existing().toUid == request.auth.uid
+        && incoming().fromUid == existing().fromUid
+        && incoming().toUid == existing().toUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().status in ['matched', 'dismissed']
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status']);
+
+      allow delete: if isVerifiedUser()
+        && isValidId(likeId)
+        && existing().fromUid == request.auth.uid
+        && existing().type == 'pass';
+    }
+
+    // 4. Mutual match threads & messages subcollection
+    match /matches/{matchId} {
+      allow get: if isSignedIn() && isValidId(matchId) && request.auth.uid in resource.data.participants;
+      allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
+
+      allow create: if isVerifiedUser()
+        && isValidId(matchId)
+        && isValidMatch(incoming())
+        && matchId == (incoming().participants[0] + '__' + incoming().participants[1])
+        && request.auth.uid in incoming().participants
+        && incoming().createdAt == request.time
+        && incoming().lastMessageAt == request.time;
+
+      allow update: if isVerifiedUser()
+        && isValidId(matchId)
+        && isValidMatch(incoming())
+        && request.auth.uid in existing().participants
+        && incoming().participants == existing().participants
+        && incoming().createdAt == existing().createdAt
+        && incoming().lastMessageAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly(['lastMessageText', 'lastMessageAt']);
+
+      allow delete: if isVerifiedUser()
+        && isValidId(matchId)
+        && request.auth.uid in existing().participants;
+
+      match /messages/{messageId} {
+        allow get: if isSignedIn()
+          && isValidId(matchId)
+          && isValidId(messageId)
+          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants;
+
+        allow list: if isSignedIn() && request.auth.uid in resource.data.participants;
+
+        allow create: if isVerifiedUser()
+          && isValidId(matchId)
+          && isValidId(messageId)
+          && isValidMessage(incoming(), matchId)
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/matches/$(matchId))
+          && request.auth.uid in get(/databases/$(database)/documents/matches/$(matchId)).data.participants
+          && incoming().participants == get(/databases/$(database)/documents/matches/$(matchId)).data.participants;
+
+        allow update, delete: if false;
+      }
+    }
+
+    // 5. Safety & childfree boundary violation reports (create-only)
+    match /reports/{reportId} {
+      allow read, update, delete: if false;
+      allow create: if isVerifiedUser()
+        && isValidId(reportId)
+        && isValidReport(incoming())
+        && incoming().createdAt == request.time;
+    }
+
+    // 6. Server-only hashed Email OTP vault
+    match /email_otps/{emailHash} {
+      allow read, write: if false;
+    }
+  }
+}
